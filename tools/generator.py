@@ -1,19 +1,22 @@
 from dotenv import load_dotenv
 import os
-load_dotenv()
-import anthropic
 import json
+import google.generativeai as genai
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+load_dotenv()
 
-def generate_flashcards(text, n):
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-2.0-flash")
+
+
+def generate_flashcards(text: str, n: int = 10) -> list:
     prompt = f"""You are a flashcard generator. Given the following text, generate exactly {n} flashcards.
 
 Return ONLY a JSON array. No explanation, no markdown, no code blocks. Just the raw JSON array.
 
 Each flashcard must have exactly these fields:
 - "question": a clear question string
-- "answer": a concise answer string
+- "answer": a concise answer string  
 - "difficulty": an integer 1, 2, or 3 (1=easy, 2=medium, 3=hard)
 
 Text:
@@ -22,22 +25,27 @@ Text:
 Return only the JSON array, nothing else."""
 
     try:
-        response = client.messages.create(
-            model="claude-opus-4-5",
-            max_tokens=2000,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        raw = response.content[0].text.strip()
+        response = model.generate_content(prompt)
+        raw = response.text.strip()
+
+        # Remove markdown code blocks if present
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        raw = raw.strip()
+
         cards = json.loads(raw)
+
     except json.JSONDecodeError:
-        # Retry once
         try:
-            response = client.messages.create(
-                model="claude-opus-4-5",
-                max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            raw = response.content[0].text.strip()
+            response = model.generate_content(prompt)
+            raw = response.text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            raw = raw.strip()
             cards = json.loads(raw)
         except Exception as e:
             print(f"Error on retry: {e}")
@@ -57,9 +65,9 @@ Return only the JSON array, nothing else."""
 
 def test_generator():
     sample_text = """
-    Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide 
-    to produce oxygen and energy in the form of glucose. It occurs in the chloroplasts, 
-    specifically using the green pigment chlorophyll. The process has two stages: 
+    Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide
+    to produce oxygen and energy in the form of glucose. It occurs in the chloroplasts,
+    specifically using the green pigment chlorophyll. The process has two stages:
     the light-dependent reactions and the Calvin cycle.
     """
     print("Testing generator...")
