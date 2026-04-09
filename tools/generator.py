@@ -1,10 +1,10 @@
 from dotenv import load_dotenv
 import os
 load_dotenv()
-import anthropic
 import json
+from groq import Groq
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def generate_flashcards(text, n):
     prompt = f"""You are a flashcard generator. Given the following text, generate exactly {n} flashcards.
@@ -22,22 +22,22 @@ Text:
 Return only the JSON array, nothing else."""
 
     try:
-        response = client.messages.create(
-            model="claude-opus-4-5",
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=2000,
-            messages=[{"role": "user", "content": prompt}]
         )
-        raw = response.content[0].text.strip()
+        raw = response.choices[0].message.content.strip()
         cards = json.loads(raw)
     except json.JSONDecodeError:
         # Retry once
         try:
-            response = client.messages.create(
-                model="claude-opus-4-5",
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
                 max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}]
             )
-            raw = response.content[0].text.strip()
+            raw = response.choices[0].message.content.strip()
             cards = json.loads(raw)
         except Exception as e:
             print(f"Error on retry: {e}")
