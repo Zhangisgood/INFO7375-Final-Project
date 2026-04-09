@@ -1,1 +1,6 @@
-# INFO-7375-Final-Project
+anthropic
+chromadb
+streamlit
+matplotlib
+numpy
+python-dotenv
