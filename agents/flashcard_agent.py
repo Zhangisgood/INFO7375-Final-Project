@@ -26,6 +26,25 @@ class FlashcardAgent:
         }
         self.last_answer_time = time.time()
 
+    def load_text(self, text: str, n_cards: int = 10):
+        """
+        Generate flashcards from text using the generator tool,
+        then load them into the agent. Called by the UI.
+        """
+        from tools.generator import generate_flashcards
+        from tools.rag import FlashcardRAG
+
+        cards = generate_flashcards(text, n=n_cards)
+        if not cards:
+            print("[Agent] No cards generated.")
+            return
+
+        # Store RAG reference for UI to access
+        self.rag = FlashcardRAG()
+        self.rag.add_cards(cards)
+
+        self.load_cards(cards)
+
     def load_cards(self, cards: list):
         """
         Load a list of flashcards into the agent.
