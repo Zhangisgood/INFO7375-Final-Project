@@ -67,8 +67,12 @@ class FlashcardAgent:
         Use Q-Learning to select the next card to show.
         Returns the selected card dict.
         """
+        if not self.cards:
+            return None
         due_cards = self.get_due_cards()
-        idx       = self.selector.select_card(due_cards, self.user_stats)
+        if not due_cards:
+            return None
+        idx = self.selector.select_card(due_cards, self.user_stats)
         return due_cards[idx]
 
     def submit_answer(self, card: dict, is_correct: bool) -> int:
