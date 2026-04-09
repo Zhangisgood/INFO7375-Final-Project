@@ -92,13 +92,34 @@ class FlashcardAgent:
         correct  = sum(self.user_stats["recent_results"])
         accuracy = correct / max(total, 1)
 
+        # Count how many times each Bandit interval was chosen
+        bandit_counts = {}
+        for i, name in enumerate(self.bandit.INTERVAL_NAMES):
+            count = int(self.bandit.b[i].sum())
+            bandit_counts[name] = max(count, 0)
+
+        # Calculate accuracy broken down by difficulty level
+        accuracy_by_difficulty = {}
+        for diff in [1, 2, 3]:
+            diff_cards = [c for c in self.cards if c.get("difficulty") == diff]
+            if diff_cards:
+                shown   = sum(c["times_shown"]   for c in diff_cards)
+                correct_diff = sum(c["times_correct"] for c in diff_cards)
+                accuracy_by_difficulty[diff] = round(
+                    correct_diff / max(shown, 1), 3
+                )
+            else:
+                accuracy_by_difficulty[diff] = 0.0
+
         return {
-            "total_answered": total,
-            "correct":        correct,
-            "accuracy":       round(accuracy, 3),
-            "epsilon":        round(self.selector.epsilon, 4),
-            "q_table_size":   len(self.selector.q_table),
-            "cards_due":      len(self.get_due_cards())
+            "total_answered":       total,
+            "correct":              correct,
+            "accuracy":             round(accuracy, 3),
+            "epsilon":              round(self.selector.epsilon, 4),
+            "q_table_size":         len(self.selector.q_table),
+            "cards_due":            len(self.get_due_cards()),
+            "bandit_counts":        bandit_counts,
+            "accuracy_by_difficulty": accuracy_by_difficulty
         }
 
 
