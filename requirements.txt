@@ -1,0 +1,7 @@
+anthropic
+groq
+chromadb
+streamlit
+matplotlib
+numpy
+python-dotenv

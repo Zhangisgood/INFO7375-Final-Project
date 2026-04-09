@@ -1,12 +1,10 @@
 from dotenv import load_dotenv
 import os
-import json
-import google.generativeai as genai
-
 load_dotenv()
+import json
+from groq import Groq
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.0-flash")
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
 def generate_flashcards(text: str, n: int = 10) -> list:
@@ -25,8 +23,12 @@ Text:
 Return only the JSON array, nothing else."""
 
     try:
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2000,
+        )
+        raw = response.choices[0].message.content.strip()
 
         # Remove markdown code blocks if present
         if raw.startswith("```"):
@@ -39,8 +41,12 @@ Return only the JSON array, nothing else."""
 
     except json.JSONDecodeError:
         try:
-            response = model.generate_content(prompt)
-            raw = response.text.strip()
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=2000,
+            )
+            raw = response.choices[0].message.content.strip()
             if raw.startswith("```"):
                 raw = raw.split("```")[1]
                 if raw.startswith("json"):
