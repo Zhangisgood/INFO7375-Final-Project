@@ -38,6 +38,7 @@ with st.sidebar:
         if text_input.strip():
             with st.spinner("Generating flashcards..."):
                 agent.load_text(text_input, n_cards)
+                st.session_state.agent = agent
                 st.session_state.current_card = None
                 st.session_state.show_answer = False
             st.success(f"Generated {n_cards} flashcards!")
