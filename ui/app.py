@@ -24,6 +24,8 @@ if "accuracy_history" not in st.session_state:
     st.session_state.accuracy_history = []
 if "next_interval" not in st.session_state:
     st.session_state.next_interval = None
+if "all_cards_map" not in st.session_state:
+    st.session_state.all_cards_map = {}
 
 agent = st.session_state.agent
 
@@ -38,6 +40,7 @@ with st.sidebar:
         if text_input.strip():
             with st.spinner("Generating flashcards..."):
                 agent.load_text(text_input, n_cards)
+                st.session_state.all_cards_map = {c["id"]: c for c in agent.cards}
                 st.session_state.agent = agent
                 st.session_state.current_card = None
                 st.session_state.show_answer = False
@@ -113,8 +116,18 @@ with col2:
     st.header("📈 Related Cards")
     if card:
         similar = agent.rag.retrieve_similar(card["question"], n=3)
+        difficulty_label = {1: "🟢 Easy", 2: "🟡 Medium", 3: "🔴 Hard"}
+        cards_map = st.session_state.all_cards_map
         for s in similar:
-            st.write(f"• Card ID: `{s['card_id']}` | Difficulty: {s['difficulty']}")
+            cid = s["card_id"]
+            related = cards_map.get(cid)
+            if related and cid != card["id"]:
+                label = f"{difficulty_label.get(s['difficulty'], '')} {related['question']}"
+                if st.button(label, key=f"related_{cid}"):
+                    st.session_state.current_card = related
+                    st.session_state.show_answer = False
+                    st.session_state.next_interval = None
+                    st.rerun()
     else:
         st.write("Select a card to see related topics.")
 
