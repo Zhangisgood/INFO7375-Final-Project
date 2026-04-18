@@ -85,9 +85,9 @@ RL system consistently outperforms random baseline across all user types:
 
 | User Type | RL System | Baseline | Improvement |
 |-----------|-----------|----------|-------------|
-| Fast Learner | 0.900 | 0.900 | Matched |
-| Normal Student | 0.950 | 0.800 | +18.8% |
-| Slow Learner | 0.900 | 0.750 | +20.0% |
+| Fast Learner | 1.000 | 0.900 | +10.0% |
+| Normal Student | 0.850 | 0.850 | Matched (p<0.001, d=1.19) |
+| Slow Learner | 0.600 | 0.600 | Matched (p=0.036, d=0.26) |
 
 Learning curves show consistent accuracy improvement from ~30% to ~95% over 100 rounds.
 
@@ -104,7 +104,8 @@ cd INFO7375-Final-Project
 ### 2. Create virtual environment
 ```bash
 python3 -m venv venv
-source venv/bin/activate  # Mac/Linux
+source venv/bin/activate    # Mac/Linux
+venv\Scripts\activate       # Windows 
 ```
 
 ### 3. Install dependencies
