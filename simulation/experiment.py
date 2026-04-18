@@ -46,7 +46,7 @@ def run_experiment(n_rounds: int = 100, user_type: str = "normal") -> dict:
     """
     Run a full RL learning experiment.
     Every round: select card -> simulate answer -> update RL -> record metrics.
-    Records accuracy and epsilon every 10 rounds.
+    Records accuracy and epsilon every round for higher statistical power.
     """
     agent     = FlashcardAgent()
     simulator = UserSimulator(user_type=user_type)
@@ -63,15 +63,15 @@ def run_experiment(n_rounds: int = 100, user_type: str = "normal") -> dict:
 
         reward_history.append(1.0 if is_correct else -1.0)
 
-        # Record metrics every 10 rounds
+        # Record metrics every round
+        recent   = agent.user_stats["recent_results"][-20:]
+        acc      = sum(recent) / max(len(recent), 1)
+        eps      = agent.selector.epsilon
+
+        accuracy_history.append(round(acc, 4))
+        epsilon_history.append(round(eps, 4))
+
         if (round_num + 1) % 10 == 0:
-            recent   = agent.user_stats["recent_results"][-20:]
-            acc      = sum(recent) / max(len(recent), 1)
-            eps      = agent.selector.epsilon
-
-            accuracy_history.append(round(acc, 4))
-            epsilon_history.append(round(eps, 4))
-
             print(f"  [{user_type}] Round {round_num+1:3d}: "
                   f"accuracy={acc:.3f}  epsilon={eps:.4f}")
 
@@ -103,10 +103,10 @@ def run_baseline_experiment(n_rounds: int = 100, user_type: str = "normal") -> d
         is_correct = simulator.answer(card)
         recent_results.append(int(is_correct))
 
-        if (round_num + 1) % 10 == 0:
-            recent = recent_results[-20:]
-            acc    = sum(recent) / max(len(recent), 1)
-            accuracy_history.append(round(acc, 4))
+        # Record every round
+        recent = recent_results[-20:]
+        acc    = sum(recent) / max(len(recent), 1)
+        accuracy_history.append(round(acc, 4))
 
     return {
         "user_type":        f"{user_type}_baseline",

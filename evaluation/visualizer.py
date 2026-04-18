@@ -3,12 +3,11 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def moving_average(data: list, window: int = 3) -> list:
+def moving_average(data: list, window: int = 10) -> list:
     """Smooth a data series using a moving average."""
     result = []
     for i in range(len(data)):
@@ -18,10 +17,6 @@ def moving_average(data: list, window: int = 3) -> list:
 
 
 def plot_learning_curves(results: dict, save_path: str = "results/learning_curves.png"):
-    """
-    Plot accuracy over time for all three user types.
-    Shows RL system vs Baseline for each user type.
-    """
     os.makedirs("results", exist_ok=True)
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
@@ -37,22 +32,17 @@ def plot_learning_curves(results: dict, save_path: str = "results/learning_curve
 
         rl_acc = results[user_type]["accuracy_history"]
         bl_acc = results[f"{user_type}_baseline"]["accuracy_history"]
-        x      = [j * 10 for j in range(1, len(rl_acc) + 1)]
+        x      = list(range(1, len(rl_acc) + 1))
 
-        # Plot RL system
         ax.plot(x, rl_acc,
-                color=colors_rl[i], linewidth=2,
-                marker="o", markersize=4, label="RL System")
-
-        # Plot smoothed RL line
+                color=colors_rl[i], linewidth=1.5,
+                alpha=0.5, label="RL System")
         ax.plot(x, moving_average(rl_acc),
                 color=colors_rl[i], linewidth=2,
-                linestyle="--", alpha=0.6, label="RL (smoothed)")
-
-        # Plot baseline
+                linestyle="--", label="RL (smoothed)")
         ax.plot(x, bl_acc,
-                color=colors_bl[i], linewidth=2,
-                marker="s", markersize=4, label="Baseline (random)")
+                color=colors_bl[i], linewidth=1.5,
+                alpha=0.5, label="Baseline (random)")
 
         ax.set_title(title, fontsize=12)
         ax.set_xlabel("Round")
@@ -68,10 +58,6 @@ def plot_learning_curves(results: dict, save_path: str = "results/learning_curve
 
 
 def plot_epsilon_decay(results: dict, save_path: str = "results/epsilon_decay.png"):
-    """
-    Plot epsilon decay over rounds for all user types.
-    Shows transition from exploration to exploitation.
-    """
     os.makedirs("results", exist_ok=True)
 
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -83,9 +69,8 @@ def plot_epsilon_decay(results: dict, save_path: str = "results/epsilon_decay.pn
 
     for user_type, label, color in zip(user_types, labels, colors):
         eps = results[user_type]["epsilon_history"]
-        x   = [j * 10 for j in range(1, len(eps) + 1)]
-        ax.plot(x, eps, color=color, linewidth=2, marker="o",
-                markersize=4, label=label)
+        x   = list(range(1, len(eps) + 1))
+        ax.plot(x, eps, color=color, linewidth=2, label=label)
 
     ax.axhline(y=0.05, color="red", linestyle="--",
                linewidth=1, alpha=0.7, label="Min ε (0.05)")
@@ -102,15 +87,11 @@ def plot_epsilon_decay(results: dict, save_path: str = "results/epsilon_decay.pn
 
 
 def plot_final_comparison(results: dict, save_path: str = "results/final_comparison.png"):
-    """
-    Bar chart comparing final accuracy: RL vs Baseline for each user type.
-    This is the key result chart for the report.
-    """
     os.makedirs("results", exist_ok=True)
 
     user_types  = ["fast_learner", "normal", "slow_learner"]
     labels      = ["Fast Learner", "Normal Student", "Slow Learner"]
-    rl_scores   = [results[u]["final_accuracy"]            for u in user_types]
+    rl_scores   = [results[u]["final_accuracy"] for u in user_types]
     bl_scores   = [results[f"{u}_baseline"]["final_accuracy"] for u in user_types]
 
     x     = np.arange(len(labels))
@@ -122,7 +103,6 @@ def plot_final_comparison(results: dict, save_path: str = "results/final_compari
     bars2 = ax.bar(x + width/2, bl_scores, width,
                    label="Baseline (random)", color="#90CAF9", alpha=0.85)
 
-    # Add value labels on top of bars
     for bar in bars1:
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
                 f"{bar.get_height():.3f}", ha="center", fontsize=10, fontweight="bold")
@@ -145,7 +125,6 @@ def plot_final_comparison(results: dict, save_path: str = "results/final_compari
 
 
 def plot_all(results_path: str = "data/experiment_results.json"):
-    """Load results and generate all charts."""
     with open(results_path, "r") as f:
         results = json.load(f)
 
