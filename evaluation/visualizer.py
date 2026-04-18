@@ -70,7 +70,8 @@ def plot_epsilon_decay(results: dict, save_path: str = "results/epsilon_decay.pn
     for user_type, label, color in zip(user_types, labels, colors):
         eps = results[user_type]["epsilon_history"]
         x   = list(range(1, len(eps) + 1))
-        ax.plot(x, eps, color=color, linewidth=2, label=label)
+        ax.plot(x, eps, color=color, linewidth=2, marker="o", markersize=5,
+                markevery=10, label=label)
 
     ax.axhline(y=0.05, color="red", linestyle="--",
                linewidth=1, alpha=0.7, label="Min ε (0.05)")
