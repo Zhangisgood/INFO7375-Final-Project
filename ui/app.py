@@ -29,11 +29,38 @@ if "all_cards_map" not in st.session_state:
 
 agent = st.session_state.agent
 
-# ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("📥 Generate Flashcards")
-    text_input = st.text_area("Paste your text here", height=200,
-                               placeholder="Paste any article, notes, or textbook paragraph...")
+
+    input_mode = st.radio("Input type", ["📝 Text", "📄 PDF", "🎥 YouTube"])
+
+    text_input = ""
+
+    if input_mode == "📝 Text":
+        text_input = st.text_area("Paste your text here", height=200,
+                                   placeholder="Paste any article, notes, or textbook paragraph...")
+
+    elif input_mode == "📄 PDF":
+        uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
+        if uploaded_file:
+            try:
+                from tools.input_processor import extract_text_from_pdf
+                text_input = extract_text_from_pdf(uploaded_file)
+                st.success(f"PDF loaded: {len(text_input)} characters extracted.")
+            except Exception as e:
+                st.error(f"Failed to read PDF: {e}")
+
+    elif input_mode == "🎥 YouTube":
+        yt_url = st.text_input("YouTube URL",
+                                placeholder="https://www.youtube.com/watch?v=...")
+        if yt_url:
+            try:
+                from tools.input_processor import extract_text_from_youtube
+                text_input = extract_text_from_youtube(yt_url)
+                st.success(f"Transcript loaded: {len(text_input)} characters extracted.")
+            except Exception as e:
+                st.error(f"Failed to load transcript: {e}")
+
     n_cards = st.slider("Number of cards", min_value=5, max_value=20, value=10)
 
     if st.button("Generate Flashcards", type="primary"):
