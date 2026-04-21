@@ -26,6 +26,8 @@ if "next_interval" not in st.session_state:
     st.session_state.next_interval = None
 if "all_cards_map" not in st.session_state:
     st.session_state.all_cards_map = {}
+if "extracted_text" not in st.session_state:
+    st.session_state.extracted_text = ""
 
 agent = st.session_state.agent
 
@@ -34,19 +36,19 @@ with st.sidebar:
 
     input_mode = st.radio("Input type", ["📝 Text", "📄 PDF", "🎥 YouTube"])
 
-    text_input = ""
-
     if input_mode == "📝 Text":
         text_input = st.text_area("Paste your text here", height=200,
                                    placeholder="Paste any article, notes, or textbook paragraph...")
+        if text_input:
+            st.session_state.extracted_text = text_input
 
     elif input_mode == "📄 PDF":
         uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
         if uploaded_file:
             try:
                 from tools.input_processor import extract_text_from_pdf
-                text_input = extract_text_from_pdf(uploaded_file)
-                st.success(f"PDF loaded: {len(text_input)} characters extracted.")
+                st.session_state.extracted_text = extract_text_from_pdf(uploaded_file)
+                st.success(f"PDF loaded: {len(st.session_state.extracted_text)} characters extracted.")
             except Exception as e:
                 st.error(f"Failed to read PDF: {e}")
 
@@ -56,24 +58,27 @@ with st.sidebar:
         if yt_url:
             try:
                 from tools.input_processor import extract_text_from_youtube
-                text_input = extract_text_from_youtube(yt_url)
-                st.success(f"Transcript loaded: {len(text_input)} characters extracted.")
+                st.session_state.extracted_text = extract_text_from_youtube(yt_url)
+                st.success(f"Transcript loaded: {len(st.session_state.extracted_text)} characters extracted.")
             except Exception as e:
                 st.error(f"Failed to load transcript: {e}")
 
     n_cards = st.slider("Number of cards", min_value=5, max_value=20, value=10)
 
     if st.button("Generate Flashcards", type="primary"):
-        if text_input.strip():
+        if st.session_state.extracted_text.strip():
             with st.spinner("Generating flashcards..."):
-                agent.load_text(text_input, n_cards)
+                st.session_state.agent = FlashcardAgent()
+                agent = st.session_state.agent
+                text_to_use = st.session_state.extracted_text[:8000]
+                agent.load_text(text_to_use, n_cards)
                 st.session_state.all_cards_map = {c["id"]: c for c in agent.cards}
-                st.session_state.agent = agent
                 st.session_state.current_card = None
                 st.session_state.show_answer = False
+                st.session_state.accuracy_history = []
             st.success(f"Generated {n_cards} flashcards!")
         else:
-            st.warning("Please paste some text first.")
+            st.warning("Please provide some input first.")
 
     st.divider()
     st.header("📊 RL Status")
@@ -94,7 +99,7 @@ with col1:
     st.header("📚 Review Cards")
 
     if st.button("Get Next Card"):
-        card = agent.get_next_card()
+        card = st.session_state.agent.get_next_card()
         if card:
             st.session_state.current_card = card
             st.session_state.show_answer = False
@@ -119,7 +124,7 @@ with col1:
             col_correct, col_wrong = st.columns(2)
             with col_correct:
                 if st.button("✅ Correct"):
-                    interval = agent.submit_answer(card, True)
+                    interval = st.session_state.agent.submit_answer(card, True)
                     st.session_state.next_interval = interval
                     st.session_state.accuracy_history.append(1)
                     st.session_state.current_card = None
@@ -127,7 +132,7 @@ with col1:
                     st.rerun()
             with col_wrong:
                 if st.button("❌ Wrong"):
-                    interval = agent.submit_answer(card, False)
+                    interval = st.session_state.agent.submit_answer(card, False)
                     st.session_state.next_interval = interval
                     st.session_state.accuracy_history.append(0)
                     st.session_state.current_card = None
@@ -142,7 +147,7 @@ with col1:
 with col2:
     st.header("📈 Related Cards")
     if card:
-        similar = agent.rag.retrieve_similar(card["question"], n=3)
+        similar = st.session_state.agent.rag.retrieve_similar(card["question"], n=3)
         difficulty_label = {1: "🟢 Easy", 2: "🟡 Medium", 3: "🔴 Hard"}
         cards_map = st.session_state.all_cards_map
         for s in similar:
@@ -184,7 +189,7 @@ with dash_col1:
 
 with dash_col2:
     st.subheader("Accuracy by Difficulty")
-    stats = agent.get_stats()
+    stats = st.session_state.agent.get_stats()
     by_diff = stats.get("accuracy_by_difficulty", {})
     if by_diff:
         fig, ax = plt.subplots()
