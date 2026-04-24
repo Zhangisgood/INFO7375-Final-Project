@@ -20,6 +20,7 @@ class IntervalBandit:
         # Each action has its own A matrix and b vector (LinUCB)
         self.A = [np.identity(self.n_features) for _ in range(self.n_actions)]
         self.b = [np.zeros(self.n_features)    for _ in range(self.n_actions)]
+        self.selection_counts = np.zeros(self.n_actions, dtype=int)
 
     def get_context(self, card: dict) -> np.ndarray:
         """
@@ -52,6 +53,7 @@ class IntervalBandit:
             ucb_vals.append(exploit + explore)
 
         action = int(np.argmax(ucb_vals))
+        self.selection_counts[action] += 1
         return action, self.INTERVALS[action]
 
     def update(self, action: int, card: dict, reward: float):
@@ -85,6 +87,7 @@ if __name__ == "__main__":
     # Test select_interval
     action, interval = bandit.select_interval(test_card)
     print(f"Selected action: {action} -> {bandit.get_interval_name(action)} ({interval} mins)")
+    print(f"Selection counts: {bandit.selection_counts}")
 
     # Test update with positive reward (answered correctly)
     bandit.update(action, test_card, reward=1.0)

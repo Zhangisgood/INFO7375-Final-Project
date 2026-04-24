@@ -56,6 +56,11 @@ class FlashcardAgent:
             self.due_times[card["id"]] = time.time()  # all due immediately
         print(f"[Agent] Loaded {len(self.cards)} cards.")
 
+    def count_due(self) -> int:
+        """Return strict count of cards due now, without fallback."""
+        now = time.time()
+        return sum(1 for c in self.cards if self.due_times.get(c["id"], 0) <= now)
+
     def get_due_cards(self) -> list:
         """Return cards that are currently due for review."""
         now = time.time()
@@ -116,10 +121,10 @@ class FlashcardAgent:
         accuracy = correct / max(total, 1)
 
         # Count how many times each Bandit interval was chosen
-        bandit_counts = {}
-        for i, name in enumerate(self.bandit.INTERVAL_NAMES):
-            count = int(self.bandit.b[i].sum())
-            bandit_counts[name] = max(count, 0)
+        bandit_counts = {
+            name: int(self.bandit.selection_counts[i])
+            for i, name in enumerate(self.bandit.INTERVAL_NAMES)
+        }
 
         # Calculate accuracy broken down by difficulty level
         accuracy_by_difficulty = {}
@@ -140,7 +145,7 @@ class FlashcardAgent:
             "accuracy":             round(accuracy, 3),
             "epsilon":              round(self.selector.epsilon, 4),
             "q_table_size":         len(self.selector.q_table),
-            "cards_due":            len(self.get_due_cards()),
+            "cards_due":            self.count_due(),
             "bandit_counts":        bandit_counts,
             "accuracy_by_difficulty": accuracy_by_difficulty
         }

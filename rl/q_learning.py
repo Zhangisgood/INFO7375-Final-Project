@@ -1,3 +1,4 @@
+import ast
 import numpy as np
 import json
 import random
@@ -123,7 +124,7 @@ class QLearningCardSelector:
 
             self.q_table = {}
             for key, actions in data["q_table"].items():
-                state = eval(key)  # convert string back to tuple
+                state = ast.literal_eval(key)  # convert string back to tuple
                 self.q_table[state] = actions
 
             self.epsilon = data.get("epsilon", self.epsilon_min)

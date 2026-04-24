@@ -1,10 +1,33 @@
 from dotenv import load_dotenv
 import os
-load_dotenv()
 import json
-from groq import Groq
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+load_dotenv()
+
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        from groq import Groq
+        _client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    return _client
+
+
+def _call_and_parse(prompt: str) -> list:
+    client = _get_client()
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=2000,
+    )
+    raw = response.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())
 
 
 def generate_flashcards(text: str, n: int = 10) -> list:
@@ -14,7 +37,7 @@ Return ONLY a JSON array. No explanation, no markdown, no code blocks. Just the 
 
 Each flashcard must have exactly these fields:
 - "question": a clear question string
-- "answer": a concise answer string  
+- "answer": a concise answer string
 - "difficulty": an integer 1, 2, or 3 (1=easy, 2=medium, 3=hard)
 
 Text:
@@ -22,45 +45,23 @@ Text:
 
 Return only the JSON array, nothing else."""
 
+    retry_prompt = f"""Generate exactly {n} flashcards as a raw JSON array (no markdown, no explanation).
+
+Each object must have: "question" (string), "answer" (string), "difficulty" (1, 2, or 3).
+
+Source text:
+{text}
+
+Output only the JSON array."""
+
     try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=2000,
-        )
-        raw = response.choices[0].message.content.strip()
-
-        # Remove markdown code blocks if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        raw = raw.strip()
-
-        cards = json.loads(raw)
-
-    except json.JSONDecodeError:
+        cards = _call_and_parse(prompt)
+    except Exception:
         try:
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=2000,
-            )
-            raw = response.choices[0].message.content.strip()
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-            raw = raw.strip()
-            cards = json.loads(raw)
+            cards = _call_and_parse(retry_prompt)
         except Exception as e:
-            print(f"Error on retry: {e}")
-            return []
-    except Exception as e:
-        print(f"API error: {e}")
-        return []
+            raise RuntimeError(f"Flashcard generation failed: {e}") from e
 
-    # Add required fields
     for i, card in enumerate(cards):
         card["id"] = f"card_{i}"
         card["times_shown"] = 0
