@@ -3,6 +3,13 @@ import os
 import re
 import random
 from html import escape as _esc
+
+# Streamlit Cloud ships an old SQLite; swap in the newer pysqlite3-binary
+try:
+    __import__("pysqlite3")
+    sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
+except ImportError:
+    pass
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
