@@ -1,6 +1,6 @@
 streamlit>=1.40.0
 groq>=1.0.0
-chromadb>=1.5.0
+chromadb==0.4.24
 pymupdf>=1.24.0
 youtube-transcript-api>=0.6.0
 numpy>=1.26.0
