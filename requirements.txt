@@ -1,10 +1,9 @@
 streamlit>=1.40.0
 groq>=1.0.0
-chromadb==0.4.24
-pysqlite3-binary
+chromadb==1.5.5
 pymupdf>=1.24.0
 youtube-transcript-api>=0.6.0
-numpy>=1.26.0
+numpy==2.4.4
 pandas>=2.0.0
 altair>=5.0.0
 matplotlib>=3.8.0
